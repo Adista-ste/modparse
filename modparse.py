@@ -12,27 +12,27 @@ filetrans = re.sub(r'(--\w+-Z--\n)',r'\1###############\n', fileall)
 attaques = re.split(r'\n###############\n', filetrans)
 
 
-sectiona = re.compile("(?P<id>\w+)-A--")
-sectiona_content = re.compile("^\[(?P<date>.+)\] (?P<uid>[\w-]+) (?P<ips>[\d\.]+) (?P<ps>[\d]+) (?P<ipd>[\d\.]+) (?P<pd>[\d]+)$")
+sectiona = re.compile(r'-*(?P<id>\w+)-A--')
+sectiona_content = re.compile(r'^\[(?P<date>.+)\] (?P<uid>.+) (?P<ips>[\d\.]+) (?P<ps>[\d]+) (?P<ipd>[\d\.]+) (?P<pd>[\d]+)$')
 
-sectionb = re.compile("(?P<id>\w+)-B--")
-sectionb_req = re.compile("(?P<req>.+)")
-sectionb_content = re.compile("^(?P<header>[A-Z][a-z\-]+): (?P<value>.+)$")
+sectionb = re.compile(r'(?P<id>\w+)-B--')
+sectionb_req = re.compile(r'(?P<req>.+)')
+sectionb_content = re.compile(r'^(?P<header>[A-Z][a-z\-]+): (?P<value>.+)$')
 
-sectionc = re.compile("(?P<id>\w+)-C--")
-sectionc_reqbody = re.compile("(?P<req>.+)")
+sectionc = re.compile(r'(?P<id>\w+)-C--')
+sectionc_reqbody = re.compile(r'(?P<req>.+)')
 
-sectionf = re.compile("(?P<id>\w+)-F--")
-sectionf_resp = re.compile("(?P<resp>.+)")
-sectionf_resp_all = re.compile("^(?P<version>[A-Z\\0-9\.]+) (?P<code>[0-9]+) (?P<msg>.*)$")
-sectionf_content = re.compile("^(?P<header>.+): (?P<value>.+)$")
+sectionf = re.compile(r'(?P<id>\w+)-F--')
+sectionf_resp = re.compile(r'(?P<resp>.+)')
+sectionf_resp_all = re.compile(r'^(?P<version>[A-Z\\0-9\.]+) (?P<code>[0-9]+) (?P<msg>.*)$')
+sectionf_content = re.compile(r'^(?P<header>.+): (?P<value>.+)$')
 
-sectionh = re.compile("(?P<id>\w+)-H--")
-sectionh_lines = re.compile("(?P<specialheader>\w+): (?P<specialvalue>.*)$")
-sectionh_messages = re.compile("^(?P<msglevel>\w+)\. (?P<msgmessage>.*)\. (?P<msgdata>\[.*\])$")
-sectionh_messages_params = re.compile("^\[(?P<msgparam>\w+) \"(?P<msgvalue>.*)\"\]$")
+sectionh = re.compile(r'(?P<id>\w+)-H--')
+sectionh_lines = re.compile(r'(?P<specialheader>\w+): (?P<specialvalue>.*)$')
+sectionh_messages = re.compile(r'^(?P<msglevel>\w+)\. (?P<msgmessage>.*)\. (?P<msgdata>\[.*\])$')
+sectionh_messages_params = re.compile(r'^\[(?P<msgparam>\w+) \"(?P<msgvalue>.*)\"\]$')
 
-sectionz = re.compile("(?P<id>\w+)-Z--")
+sectionz = re.compile(r'(?P<id>\w+)-Z--')
 
 
 detectionl = []
@@ -81,14 +81,23 @@ for attaque in attaques:
 			lines = section.split('\n')
 			lines.pop(0)
 
-			f_respres = sectionf_resp.match(lines[0])
-			f_resp = f_respres.groupdict()
+			try:
+				f_respres = sectionf_resp.match(lines[0])
+				f_resp = f_respres.groupdict()
+			except:
+				pass
 
-			f_respallres = sectionf_resp_all.match(lines[0])
-			f_respall = f_respallres.groupdict()
+			try:
+				f_respallres = sectionf_resp_all.match(lines[0])
+				f_respall = f_respallres.groupdict()
+			except:
+				pass
 
-			detectiond['resp'] = { 'resp': f_resp['resp'] }
-			detectiond['resp'].update(f_respall)
+			try:
+				detectiond['resp'] = { 'resp': f_resp['resp'] }
+				detectiond['resp'].update(f_respall)
+			except:
+				pass
 
 			lines.pop(0)
 
@@ -157,13 +166,13 @@ for attaque in attaques:
 		if detectiond <> {}:
 			detectionl.append(detectiond)
 
-pprint.pprint(detectionl[1])
+#pprint.pprint(detectionl[index])
 
 for at in detectionl:
 	for msg in at['ModSec']['list_mesg']:
-		print "%s;%s;%s;%s" % (detectionl.index(at), msg['msgdatas']['id'], at['req']['req'], at['data'])
+		print "%5s;%5s;%100s;%s" % (detectionl.index(at), msg['msgdatas']['id'], at['req']['req'], at['data']['datestr'])
 
-print len(detectionl)
+#print len(detectionl)
 #print attaques[index]
 #pprint.pprint(detectionl[index])
 
