@@ -50,14 +50,15 @@ for attaque in attaques:
 				a_content['date'] = re.sub(' \+\w{4}$','', a_content['date'])
 				a_content['date'] = datetime.datetime.strptime( a_content['date'], '%d/%b/%Y:%X')
 				detectiond['id'] = a_title['id']
-				detectiond['data'] = {
-							'UID': a_content['uid'],
-							'date': a_content['date'],
-							'ips': a_content['ips'],
-							'ps': a_content['ps'],
-							'ipd': a_content['ipd'],
-							'pd': a_content['pd'],
-							}
+				detectiond['data'] = a_content
+#				detectiond['data'] = {
+#							'UID': a_content['uid'],
+#							'date': a_content['date'],
+#							'ips': a_content['ips'],
+#							'ps': a_content['ps'],
+#							'ipd': a_content['ipd'],
+#							'pd': a_content['pd'],
+#							}
 				continue
 		if sectionb.match(section):
 			lines = section.split('\n')
@@ -116,10 +117,6 @@ for attaque in attaques:
 					h_mesgres = sectionh_messages.match(h_line['specialvalue'])
 					try:
 						h_mesg = h_mesgres.groupdict()
-						detectiond['debug'] = h_mesgres.groupdict()
-						detectiond['debug2'] = h_mesg
-						detectiond['debug3'] = h_mesg['msgdata']
-
 					except:
 						print "h_mesg : %s " % h_mesg
 						pass
@@ -128,32 +125,28 @@ for attaque in attaques:
 						h_mesg['msgdata'] = re.sub('\] \[',']_-_[',h_mesg['msgdata'])
 						h_mesg_params_array = h_mesg['msgdata'].split('_-_')
 					except:
-						print "h_mesg['msgdata'] : %s " % h_mesg['msgdata']
+						#print "h_mesg['msgdata'] : %s " % h_mesg['msgdata']
 						pass
 
 
-				#	del h_mesg['msgdata']
-					h_mesg['msgdata'] = {}
-#					h_mesg.update({ 'msgdata' : {} })
+					del h_mesg['msgdata']
+					h_mesg['msgdatas'] = {}
+				#	h_mesg['debug'] = []
+					i = 0
 					
 
 					for h_mesg_params in h_mesg_params_array:
 						h_mesg_paramsres = sectionh_messages_params.match(h_mesg_params)
 						h_mesg_params = h_mesg_paramsres.groupdict()
-						if h_mesg_params['msgparam'] in h_mesg['msgdata']:
-							if type(h_mesg['msgdata'][h_mesg_params['msgparam']]) is list:
-								h_mesg['msgdata'][h_mesg_params['msgparam']].append(h_mesg_params['msgvalue'])
-							else:
-								speciallist = h_mesg['msgdata'][h_mesg_params['msgparam']].split()
-								h_mesg['msgdata'][h_mesg_params['msgparam']] = speciallist
+						if h_mesg_params['msgparam'] in h_mesg['msgdatas']:
+							i+=1
+							h_mesg['msgdatas'].update({ h_mesg_params['msgparam']+str(i) : h_mesg_params['msgvalue'] })
 						else:
-							h_mesg['msgdata'].update({ h_mesg_params['msgparam'] : h_mesg_params['msgvalue'] })
+							h_mesg['msgdatas'].update({ h_mesg_params['msgparam'] : h_mesg_params['msgvalue'] })
+				#		h_mesg['debug'].append('%s: %s' % (h_mesg_params['msgparam'], h_mesg_params['msgvalue']))
 
-					detectiond['debug4'] = h_mesg
 					listmesg.append(h_mesg)
-					listmesg.append(h_mesg['msgdata'])
 					detectiond['ModSec'].update({ 'list_mesg' : listmesg})
-					del h_mesg['msgdata']
 				else:
 					detectiond['ModSec'].update({h_line['specialheader'] : h_line['specialvalue']})
 				detectiond['ModSec'].update(h_mesg)
