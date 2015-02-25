@@ -3,6 +3,8 @@
 import sys, re, datetime, pprint
 
 file=sys.argv[1]
+index = int(sys.argv[2])
+choix=sys.argv[3]
 
 fileall = open(file, 'r').read()
 
@@ -48,6 +50,7 @@ for attaque in attaques:
 				a_content = a_contentres.groupdict() if a_contentres <> "" else None
 				a_content['date'] = re.sub(' \+\w{4}$','', a_content['date'])
 				a_content['date'] = datetime.datetime.strptime( a_content['date'], '%d/%b/%Y:%X')
+				a_content['datestr'] = datetime.datetime.strftime( a_content['date'], '%Y/%m/%d-%X')
 				detectiond['id'] = a_title['id']
 				detectiond['data'] = a_content
 #				detectiond['data'] = {
@@ -119,21 +122,15 @@ for attaque in attaques:
 					except:
 						print "h_mesg : %s " % h_mesg
 						pass
-					
 					try:
 						h_mesg['msgdata'] = re.sub('\] \[',']_-_[',h_mesg['msgdata'])
 						h_mesg_params_array = h_mesg['msgdata'].split('_-_')
 					except:
-						#print "h_mesg['msgdata'] : %s " % h_mesg['msgdata']
 						pass
-
-
 					del h_mesg['msgdata']
-					h_mesg['msgdatas'] = {}
-				#	h_mesg['debug'] = []
+					if not 'msgdatas' in h_mesg:
+						h_mesg['msgdatas'] = {}
 					i = 0
-					
-
 					for h_mesg_params in h_mesg_params_array:
 						h_mesg_paramsres = sectionh_messages_params.match(h_mesg_params)
 						h_mesg_params = h_mesg_paramsres.groupdict()
@@ -142,13 +139,17 @@ for attaque in attaques:
 							h_mesg['msgdatas'].update({ h_mesg_params['msgparam']+str(i) : h_mesg_params['msgvalue'] })
 						else:
 							h_mesg['msgdatas'].update({ h_mesg_params['msgparam'] : h_mesg_params['msgvalue'] })
-				#		h_mesg['debug'].append('%s: %s' % (h_mesg_params['msgparam'], h_mesg_params['msgvalue']))
-
 					listmesg.append(h_mesg)
-					detectiond['ModSec'].update({ 'list_mesg' : listmesg})
 				else:
 					detectiond['ModSec'].update({h_line['specialheader'] : h_line['specialvalue']})
-				detectiond['ModSec'].update(h_mesg)
+				if len(listmesg) > 0:
+					detectiond['ModSec'].update({ 'list_mesg' : listmesg })
+				else:
+					detectiond['ModSec'].update({ 'list_mesg' : [h_mesg] })
+				#detectiond['ModSec'].update(h_mesg)
+				#detectiond['ModSec']['debug'] = []
+				#detectiond['ModSec']['debug'].append(listmesg)
+			del listmesg
 			continue
 		if sectionz.match(section):
 			detectionl.append(detectiond)
@@ -156,9 +157,45 @@ for attaque in attaques:
 		if detectiond <> {}:
 			detectionl.append(detectiond)
 
+pprint.pprint(detectionl[1])
+
+for at in detectionl:
+	for msg in at['ModSec']['list_mesg']:
+		print "%s;%s;%s;%s" % (detectionl.index(at), msg['msgdatas']['id'], at['req']['req'], at['data'])
+
 print len(detectionl)
-##print "\n\n\n"
-index = int(sys.argv[2])
-print attaques[index]
-#print sections
-pprint.pprint(detectionl[index])
+#print attaques[index]
+#pprint.pprint(detectionl[index])
+
+
+#	
+#	{'ModSec': {'Producer': 'ModSecurity for Apache/2.7.3 (http://www.modsecurity.org/); OWASP_CRS/2.2.6.',
+#	            'Server': 'Apache/2.2.15 (CentOS)',
+#	            'Stopwatch': '1424657375852470 758421 (- - -)',
+#	            'Stopwatch2': '1424657375852470 758421; combined=4429, p1=811, p2=1530, p3=0, p4=0, p5=2086, sr=228, sw=2, l=0, gc=0',
+#	            'list_mesg': [{'msgdatas': {'file': '/etc/httpd/modsecurity.d/activated_rules/modsecurity_crs_60_correlation.conf',
+#	                                        'id': '981203',
+#	                                        'line': '33',
+#	                                        'msg': 'Inbound Anomaly Score (Total Inbound Score: 3, SQLi=, XSS=): Rogue web site crawler'},
+#	                           'msglevel': 'Warning',
+#	                           'msgmessage': 'Operator LT matched 5 at TX:inbound_anomaly_score'}]},
+#	 'data': {'date': datetime.datetime(2015, 2, 23, 3, 9, 36),
+#	          'ipd': '149.255.137.28',
+#	          'ips': '80.35.138.190',
+#	          'pd': '80',
+#	          'ps': '53803',
+#	          'uid': 'VOqL35X-iRwAAGitWLEAAAAf'},
+#	 'id': '2d53de02',
+#	 'req': {'Accept': 'text/xml,application/xml,application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,image/png,*/*;q=0.3',
+#	         'Host': 'www.renov-assistance.fr',
+#	         'req': 'GET /wp-content/plugins/captcha/captcha.php HTTP/1.1'},
+#	 'resp': {'Connection': 'close',
+#	          'Content-Encoding': 'gzip',
+#	          'Content-Type': 'text/html; charset=UTF-8',
+#	          'Transfer-Encoding': 'chunked',
+#	          'Vary': 'Accept-Encoding,User-Agent',
+#	          'code': '500',
+#	          'msg': 'Internal Server Error',
+#	          'resp': 'HTTP/1.1 500 Internal Server Error',
+#	          'version': 'HTTP/1.1'}}
+#	

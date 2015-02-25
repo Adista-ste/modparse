@@ -1,1 +1,2 @@
 git config remote.origin.url https://github.com/Adista-ste/modparse.git
+git config remote.origin.url https://github.com/Adista-ste/modparse.git
