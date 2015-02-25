@@ -4,7 +4,6 @@ import sys, re, datetime, pprint
 
 file=sys.argv[1]
 
-
 fileall = open(file, 'r').read()
 
 filetrans = re.sub(r'(--\w+-Z--\n)',r'\1###############\n', fileall)
