@@ -1,17 +1,23 @@
 #!/bin/env python
 
-import sys, re, datetime, pprint
+import sys, re, datetime, pprint, json
 
+# On ouvre un fichier ModSecAuditLog
 file=sys.argv[1]
+# On definit un index
 index = int(sys.argv[2])
+# On definit un choix
 choix=sys.argv[3]
 
+#On ouvre le fichier
 fileall = open(file, 'r').read()
 
+# Dans le fichier on ajoute la ligne ##### après la section Z
 filetrans = re.sub(r'(--\w+-Z--\n)',r'\1###############\n', fileall)
+# On cré une liste d'attaques  séparé selon la ligne ##### 
 attaques = re.split(r'\n###############\n', filetrans)
 
-
+# On définit les diférentes section via des regex
 sectiona = re.compile(r'-*(?P<id>\w+)-A--')
 sectiona_content = re.compile(r'^\[(?P<date>.+)\] (?P<uid>.+) (?P<ips>[\d\.]+) (?P<ps>[\d]+) (?P<ipd>[\d\.]+) (?P<pd>[\d]+)$')
 
@@ -35,21 +41,33 @@ sectionh_messages_params = re.compile(r'^\[(?P<msgparam>\w+) \"(?P<msgvalue>.*)\
 sectionz = re.compile(r'(?P<id>\w+)-Z--')
 
 
+# On crée une liste de detection (chaque membre est une attaque décomposé en section et en paramètres)
 detectionl = []
 
+# On boucle sur chaque attaque
 for attaque in attaques:
+	# On découpe chaque attaque en sections
 	sections = re.split('\n--',attaque)
+	# On crée un dictionaire de detection (qui correspond à une attaque)
 	detectiond = {}
+	# On boucle sur chaque section
 	for section in sections:
+		# On test si la section est A
 		if sectiona.match(section):
+			# si oui alors on découpe la section en ligne
 			lines = section.split('\n')
+			# On définit chaque paramètre
 			a_titleres = sectiona.match(lines[0])
 			a_title = a_titleres.groupdict()
 			a_contentres = sectiona_content.match(lines[1]) if lines[1] <>  "" else ""
+			# si il y a du contenu
 			if a_contentres:
+				# On récupère ce contenu
 				a_content = a_contentres.groupdict() if a_contentres <> "" else None
 				a_content['date'] = re.sub(' \+\w{4}$','', a_content['date'])
+				# on converti la date en datetime
 				a_content['date'] = datetime.datetime.strptime( a_content['date'], '%d/%b/%Y:%X')
+				# on converti la date en chaine 2015/04/02-23:56
 				a_content['datestr'] = datetime.datetime.strftime( a_content['date'], '%Y/%m/%d-%X')
 				detectiond['id'] = a_title['id']
 				detectiond['data'] = a_content
@@ -62,6 +80,7 @@ for attaque in attaques:
 #							'pd': a_content['pd'],
 #							}
 				continue
+		# On test si la section est B
 		if sectionb.match(section):
 			lines = section.split('\n')
 			lines.pop(0)
@@ -77,6 +96,7 @@ for attaque in attaques:
 				except:
 					pass
 			continue
+		# Etc F
 		if sectionf.match(section):
 			lines = section.split('\n')
 			lines.pop(0)
@@ -109,6 +129,7 @@ for attaque in attaques:
 				except:
 					pass
 			continue
+		# Etc H
 		if sectionh.match(section):
 			detectiond['ModSec'] = {}
 			lines = section.split('\n')
@@ -151,6 +172,7 @@ for attaque in attaques:
 					listmesg.append(h_mesg)
 				else:
 					detectiond['ModSec'].update({h_line['specialheader'] : h_line['specialvalue']})
+
 				if len(listmesg) > 0:
 					detectiond['ModSec'].update({ 'list_mesg' : listmesg })
 				else:
@@ -160,14 +182,20 @@ for attaque in attaques:
 				#detectiond['ModSec']['debug'].append(listmesg)
 			del listmesg
 			continue
+		# FIN car on test la section Z
 		if sectionz.match(section):
 			detectionl.append(detectiond)
 			continue
+		# Si la detection existe alors on l'ajoute à la liste des detections
 		if detectiond <> {}:
 			detectionl.append(detectiond)
 
+# On a finit de boucler, on a une liste detectionl contenant l'ensemble des attaques formaté en ~ JSON
+
 #pprint.pprint(detectionl[index])
 
+
+# Tentative d'analyser les attaques en affichant un tableau
 for at in detectionl:
 	for msg in at['ModSec']['list_mesg']:
 		print "%5s;%5s;%100s;%s" % (detectionl.index(at), msg['msgdatas']['id'], at['req']['req'], at['data']['datestr'])
@@ -177,7 +205,7 @@ for at in detectionl:
 #pprint.pprint(detectionl[index])
 
 
-#	
+#	Exemple d'objet "Attaque"	
 #	{'ModSec': {'Producer': 'ModSecurity for Apache/2.7.3 (http://www.modsecurity.org/); OWASP_CRS/2.2.6.',
 #	            'Server': 'Apache/2.2.15 (CentOS)',
 #	            'Stopwatch': '1424657375852470 758421 (- - -)',
