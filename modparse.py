@@ -1,4 +1,6 @@
 #!/bin/env python
+# -*- coding: utf8 -*-
+
 
 import sys, re, datetime, pprint, json
 
